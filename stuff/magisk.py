@@ -8,9 +8,9 @@ from tools.logger import Logger
 from tools import container
 
 class Magisk(General):
-    id = "magisk delta"
+    id = "magisk"
     partition = "system"
-    dl_link = "https://github.com/mistrmochov/magiskdeltaorig/raw/main/app-release.apk"
+    dl_link = "https://github.com/topjohnwu/Magisk/releases/download/v31.1/Magisk-v31.1.apk"
     dl_file_name = "magisk.apk"
     extract_to = "/tmp/magisk_unpack"
     magisk_dir = os.path.join(partition, "etc", "init", "magisk")
