@@ -83,16 +83,23 @@ on property:init.svc.zygote=stopped
                 filename = re.search('lib(.*)\.so', filename)
                 n_path = os.path.join(magisk_absolute_dir, filename.group(1))
                 shutil.copyfile(o_path, n_path)
-        shutil.copyfile(self.download_loc, os.path.join(magisk_absolute_dir,"magisk.apk") )
-        shutil.copytree(os.path.join(self.extract_to, "assets", "chromeos"), os.path.join(magisk_absolute_dir, "chromeos"), dirs_exist_ok=True)
+        shutil.copyfile(self.download_loc, os.path.join(magisk_absolute_dir, "magisk.apk"))
+        # Copy chromeos dir only if present (Magisk Delta had it; official Magisk v27+ does not)
+        chromeos_src = os.path.join(self.extract_to, "assets", "chromeos")
+        if os.path.isdir(chromeos_src):
+            shutil.copytree(chromeos_src, os.path.join(magisk_absolute_dir, "chromeos"), dirs_exist_ok=True)
         assets_files = [
             "addon.d.sh",
             "boot_patch.sh",
-            "stub.apk",
             "util_functions.sh"
         ]
+        # stub.apk was removed in official Magisk v27+
+        if os.path.isfile(os.path.join(self.extract_to, "assets", "stub.apk")):
+            assets_files.append("stub.apk")
         for f in assets_files:
-            shutil.copyfile(os.path.join(self.extract_to, "assets", f), os.path.join(magisk_absolute_dir, f))
+            src = os.path.join(self.extract_to, "assets", f)
+            if os.path.isfile(src):
+                shutil.copyfile(src, os.path.join(magisk_absolute_dir, f))
 
         # Updating Magisk from Magisk manager will modify bootanim.rc, 
         # So it is necessary to backup the original bootanim.rc.
