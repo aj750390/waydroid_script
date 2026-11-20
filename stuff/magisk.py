@@ -75,14 +75,26 @@ on property:init.svc.zygote=stopped
             os.makedirs(os.path.join(self.copy_dir, "sbin"), exist_ok=True)
 
         Logger.info("Copying magisk libs now ...")
-        
+
         lib_dir = os.path.join(self.extract_to, "lib", self.arch[0])
         for parent, dirnames, filenames in os.walk(lib_dir):
             for filename in filenames:
-                o_path = os.path.join(lib_dir, filename)  
-                filename = re.search('lib(.*)\.so', filename)
-                n_path = os.path.join(magisk_absolute_dir, filename.group(1))
+                o_path = os.path.join(lib_dir, filename)
+                m = re.search('lib(.*)\.so', filename)
+                n_path = os.path.join(magisk_absolute_dir, m.group(1))
                 shutil.copyfile(o_path, n_path)
+                os.chmod(n_path, 0o755)
+
+        # Official Magisk v27+ ships a single 'magisk' binary (from libmagisk.so).
+        # The bootanim.rc hook invokes magisk64/magisk32 for --setup-sbin,
+        # so create a compat copy under the arch-suffixed name if needed.
+        arch_bits = self.arch[1]
+        magisk_bin = os.path.join(magisk_absolute_dir, "magisk")
+        magisk_arch_bin = os.path.join(magisk_absolute_dir, "magisk{}".format(arch_bits))
+        if os.path.isfile(magisk_bin) and not os.path.isfile(magisk_arch_bin):
+            shutil.copyfile(magisk_bin, magisk_arch_bin)
+            os.chmod(magisk_arch_bin, 0o755)
+
         shutil.copyfile(self.download_loc, os.path.join(magisk_absolute_dir, "magisk.apk"))
         # Copy chromeos dir only if present (Magisk Delta had it; official Magisk v27+ does not)
         chromeos_src = os.path.join(self.extract_to, "assets", "chromeos")
