@@ -10,11 +10,11 @@ from tools import container
 class Magisk(General):
     id = "magisk"
     partition = "system"
-    dl_link = "https://github.com/topjohnwu/Magisk/releases/download/v31.1/Magisk-v31.1.apk"
+    dl_link = "https://github.com/AndnixSH/KitsuneMagisk/releases/download/backup/Kitsune.Magisk.release.v27.2-kitsune-4.apk"
     dl_file_name = "magisk.apk"
     extract_to = "/tmp/magisk_unpack"
     magisk_dir = os.path.join(partition, "etc", "init", "magisk")
-    files = ["etc/init/magisk", "etc/init/bootanim.rc"]
+    files = ["etc/init/magisk", "etc/init/bootanim.rc", "etc/init/bootanim.rc.gz", "priv-app/MagiskManager"]
     oringinal_bootanim = """
 service bootanim /system/bin/bootanimation
     class core animation
@@ -85,27 +85,24 @@ on property:init.svc.zygote=stopped
                 shutil.copyfile(o_path, n_path)
                 os.chmod(n_path, 0o755)
 
-        # Official Magisk v27+ ships a single 'magisk' binary (from libmagisk.so).
-        # The bootanim.rc hook invokes magisk64/magisk32 for --setup-sbin,
-        # so create a compat copy under the arch-suffixed name if needed.
-        arch_bits = self.arch[1]
-        magisk_bin = os.path.join(magisk_absolute_dir, "magisk")
-        magisk_arch_bin = os.path.join(magisk_absolute_dir, "magisk{}".format(arch_bits))
-        if os.path.isfile(magisk_bin) and not os.path.isfile(magisk_arch_bin):
-            shutil.copyfile(magisk_bin, magisk_arch_bin)
-            os.chmod(magisk_arch_bin, 0o755)
-
+        # Copy the APK to the init magisk dir
         shutil.copyfile(self.download_loc, os.path.join(magisk_absolute_dir, "magisk.apk"))
-        # Copy chromeos dir only if present (Magisk Delta had it; official Magisk v27+ does not)
+
+        # Install APK as a priv-app so the Magisk Manager shows as system-installed
+        priv_app_dir = os.path.join(self.copy_dir, self.partition, "priv-app", "MagiskManager")
+        os.makedirs(priv_app_dir, exist_ok=True)
+        shutil.copyfile(self.download_loc, os.path.join(priv_app_dir, "MagiskManager.apk"))
+
+        # Copy chromeos dir if present (Kitsune Mask includes it)
         chromeos_src = os.path.join(self.extract_to, "assets", "chromeos")
         if os.path.isdir(chromeos_src):
             shutil.copytree(chromeos_src, os.path.join(magisk_absolute_dir, "chromeos"), dirs_exist_ok=True)
+
         assets_files = [
             "addon.d.sh",
             "boot_patch.sh",
-            "util_functions.sh"
+            "util_functions.sh",
         ]
-        # stub.apk was removed in official Magisk v27+
         if os.path.isfile(os.path.join(self.extract_to, "assets", "stub.apk")):
             assets_files.append("stub.apk")
         for f in assets_files:
@@ -166,7 +163,8 @@ on property:init.svc.zygote=stopped
         data_dir = get_data_dir()
         files = [
             os.path.join(data_dir, "adb/magisk.db"),
-            os.path.join(data_dir, "adb/magisk")
+            os.path.join(data_dir, "adb/magisk"),
+            os.path.join(self.copy_dir, self.partition, "priv-app", "MagiskManager"),
         ]
         for file in files:
             if os.path.isdir(file):
